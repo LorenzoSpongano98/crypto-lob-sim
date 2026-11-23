@@ -18,7 +18,7 @@ all = { level = "warn", priority = -1 }
 debug = "line-tables-only"
 
 [workspace.dependencies]
-core = { path = "crates/core-types" }
+core-types = { path = "crates/core-types" }
 record = { path = "crates/record" }
 feed = { path = "crates/feed" }
 
