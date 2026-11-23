@@ -3,5 +3,17 @@
 version = 4
 
 [[package]]
-name = "feed-handler"
+name = "bin"
+version = "0.1.0"
+
+[[package]]
+name = "core-types"
+version = "0.1.0"
+
+[[package]]
+name = "feed"
+version = "0.1.0"
+
+[[package]]
+name = "record"
 version = "0.1.0"
