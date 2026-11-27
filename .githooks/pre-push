@@ -1,4 +1,4 @@
 #!/bin/sh
-set -e
-echo "pre-push: just check"
-just check 
+set -eu
+command -v just >/dev/null 2>&1 || { echo "pre-push: install just first" >&2; exit 1; }
+exec just check

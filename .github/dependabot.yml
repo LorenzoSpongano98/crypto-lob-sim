@@ -3,11 +3,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: weekly
+      interval: monthly
     groups:
-      minor-e-patch:
-        update-types: [minor, patch]
+      actions:
+        patterns: ["*"]

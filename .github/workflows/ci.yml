@@ -6,65 +6,86 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
-  CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 0
-  RUST_BACKTRACE: 1
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
-  test:
-    name: Test (${{ matrix.rust }})
-    runs-on: ubuntu-latest
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: clang-format
+        run: git ls-files '*.cpp' '*.hpp' | xargs clang-format-18 --dry-run --Werror
+
+  build:
+    name: ${{ matrix.compiler.name }} ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable]
+        compiler:
+          - { name: gcc-14, cc: gcc-14, cxx: g++-14 }
+          - { name: clang-18, cc: clang-18, cxx: clang++-18 }
+        preset: [debug, release]
         include:
-          - rust: beta
-            experimental: true
-
-    continue-on-error: ${{ matrix.experimental || false}}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --all-targets --all-features --locked
-      - run: cargo test --workspace --doc --all-features --locked
-
-  lint:
-    name: Fmt and Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
+          - compiler: { name: clang-18, cc: clang-18, cxx: clang++-18 }
+            preset: asan
+          - compiler: { name: clang-18, cc: clang-18, cxx: clang++-18 }
+            preset: tsan
     env:
-      RUSTDOCFLAGS: -D warnings
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo doc --no-deps --all-features
 
-  deny:
-    name: Licenses and vulnerabilities
-    runs-on: ubuntu-latest
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libboost-dev libssl-dev g++-14 libclang-rt-18-dev
+
+      - name: Cache fetched dependencies
+        uses: actions/cache@v6
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.compiler.name }}-${{ matrix.preset }}-${{ hashFiles('cmake/Dependencies.cmake') }}
+
+      - name: Relax ASLR for sanitizers
+        if: matrix.preset == 'asan' || matrix.preset == 'tsan'
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }} -DTF_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}
+
+  tidy:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
     steps:
       - uses: actions/checkout@v7
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libboost-dev libssl-dev clang-tidy-18
+      - name: Cache fetched dependencies
+        uses: actions/cache@v6
+        with:
+          path: build/tidy/_deps
+          key: deps-tidy-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - name: Configure
+        run: cmake --preset tidy -DTF_WARNINGS_AS_ERRORS=ON -DTF_CLANG_TIDY_EXE=/usr/bin/clang-tidy-18
+      - name: clang-tidy
+        run: cmake --build --preset tidy
