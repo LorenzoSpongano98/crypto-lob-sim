@@ -1,0 +1,5 @@
+add_library(tf_core src/version.cpp)
+add_library(tf::core ALIAS tf_core)
+target_include_directories(tf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(tf_core PRIVATE TF_VERSION="${PROJECT_VERSION}")
+tf_configure_target(tf_core)

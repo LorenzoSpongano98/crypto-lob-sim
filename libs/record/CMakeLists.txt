@@ -1,0 +1,5 @@
+add_library(tf_record src/format.cpp)
+add_library(tf::record ALIAS tf_record)
+target_include_directories(tf_record PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(tf_record PUBLIC tf::core)
+tf_configure_target(tf_record)

@@ -1,0 +1,7 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Checking feed v0.1.0 (/home/lorenzo/crypto-lob-sim/crates/feed)
+    Checking core-types v0.1.0 (/home/lorenzo/crypto-lob-sim/crates/core-types)
+    Checking bin v0.1.0 (/home/lorenzo/crypto-lob-sim/crates/bin)
+    Checking record v0.1.0 (/home/lorenzo/crypto-lob-sim/crates/record)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
